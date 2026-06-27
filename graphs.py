@@ -1,9 +1,3 @@
-"""
-Tarea 2 - CIT3352
-Generación de gráficos para el informe.
-Genera: boxplots, barras comparativas, curvas de convergencia.
-"""
-
 import os
 import random
 import time
@@ -26,15 +20,12 @@ def ensure_dir():
 
 
 def run_and_collect(inst, sa_params, ga_params, n_runs=10):
-    """Ejecuta todos los algoritmos y recolecta datos para gráficos."""
     data = {}
 
-    # 1. Greedy Determinista
     det = greedy_deterministic(inst)
     data['det_benefit'] = det.benefit
     data['det_sol'] = det
 
-    # 2. Greedy Estocástico (10 runs)
     stoch_benefits = []
     stoch_sols = []
     stoch_times = []
@@ -50,7 +41,6 @@ def run_and_collect(inst, sa_params, ga_params, n_runs=10):
     best_stoch = stoch_sols[stoch_benefits.index(max(stoch_benefits))]
     data['best_stoch'] = best_stoch
 
-    # 3a. SA desde Greedy Det (10 runs con convergencia)
     sa_det_benefits = []
     sa_det_times = []
     sa_det_histories = []
@@ -65,7 +55,6 @@ def run_and_collect(inst, sa_params, ga_params, n_runs=10):
     data['sa_det_times'] = sa_det_times
     data['sa_det_histories'] = sa_det_histories
 
-    # 3b. SA desde Greedy Est (10 runs con convergencia)
     sa_st_benefits = []
     sa_st_times = []
     sa_st_histories = []
@@ -80,7 +69,6 @@ def run_and_collect(inst, sa_params, ga_params, n_runs=10):
     data['sa_st_times'] = sa_st_times
     data['sa_st_histories'] = sa_st_histories
 
-    # 4. Algoritmo Genético (10 runs con convergencia)
     ga_benefits = []
     ga_times = []
     ga_histories = []
@@ -99,7 +87,6 @@ def run_and_collect(inst, sa_params, ga_params, n_runs=10):
 
 
 def plot_greedy_comparison(data, instance_name):
-    """Boxplot comparando Greedy Det vs Greedy Est."""
     fig, ax = plt.subplots(figsize=(8, 5))
     bp = ax.boxplot(
         [data['stoch_benefits']],
@@ -122,7 +109,6 @@ def plot_greedy_comparison(data, instance_name):
 
 
 def plot_all_algorithms_boxplot(data, instance_name):
-    """Boxplot comparando todos los algoritmos."""
     fig, ax = plt.subplots(figsize=(10, 6))
     all_data = [
         data['stoch_benefits'],
@@ -150,11 +136,9 @@ def plot_all_algorithms_boxplot(data, instance_name):
     plt.close()
 
 
-def plot_convergence_sa(data, instance_name):
-    """Curvas de convergencia del SA (det vs est como punto de partida)."""
+def plot_convergence_sa_iters(data, instance_name):
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Promediar historiales
     for histories, label, color in [
         (data['sa_det_histories'], 'SA (desde Greedy Det.)', '#F39C12'),
         (data['sa_st_histories'], 'SA (desde Greedy Est.)', '#E67E22'),
@@ -166,21 +150,48 @@ def plot_convergence_sa(data, instance_name):
         iters = []
         for idx in range(min_len):
             iters.append(histories[0][idx][0])
-            avg_curve.append(statistics.mean(h[idx][1] for h in histories))
+            avg_curve.append(statistics.mean(h[idx][2] for h in histories))
         ax.plot(iters, avg_curve, label=label, color=color, linewidth=2)
 
     ax.set_xlabel('Iteración')
     ax.set_ylabel('Mejor Beneficio')
-    ax.set_title(f'Convergencia Simulated Annealing — {instance_name}')
+    ax.set_title(f'Convergencia Simulated Annealing (FO vs Iteraciones) — {instance_name}')
     ax.legend()
     ax.grid(alpha=0.3)
     plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/convergence_sa_iters_{instance_name}.png", dpi=150)
     plt.savefig(f"{OUTPUT_DIR}/convergence_sa_{instance_name}.png", dpi=150)
     plt.close()
 
 
-def plot_convergence_ga(data, instance_name):
-    """Curva de convergencia del algoritmo genético."""
+def plot_convergence_sa_time(data, instance_name):
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    for histories, label, color in [
+        (data['sa_det_histories'], 'SA (desde Greedy Det.)', '#F39C12'),
+        (data['sa_st_histories'], 'SA (desde Greedy Est.)', '#E67E22'),
+    ]:
+        if not histories or not histories[0]:
+            continue
+        min_len = min(len(h) for h in histories)
+        avg_curve = []
+        times = []
+        for idx in range(min_len):
+            times.append(statistics.mean(h[idx][1] for h in histories))
+            avg_curve.append(statistics.mean(h[idx][2] for h in histories))
+        ax.plot(times, avg_curve, label=label, color=color, linewidth=2)
+
+    ax.set_xlabel('Tiempo (segundos)')
+    ax.set_ylabel('Mejor Beneficio')
+    ax.set_title(f'Convergencia Simulated Annealing (FO vs Tiempo) — {instance_name}')
+    ax.legend()
+    ax.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/convergence_sa_time_{instance_name}.png", dpi=150)
+    plt.close()
+
+
+def plot_convergence_ga_iters(data, instance_name):
     fig, ax = plt.subplots(figsize=(10, 6))
 
     histories = data['ga_histories']
@@ -188,25 +199,64 @@ def plot_convergence_ga(data, instance_name):
         plt.close()
         return
     min_len = min(len(h) for h in histories)
-    avg_curve = []
     gens = []
+    best_curve = []
+    avg_curve = []
+    worst_curve = []
     for idx in range(min_len):
         gens.append(histories[0][idx][0])
-        avg_curve.append(statistics.mean(h[idx][1] for h in histories))
-    ax.plot(gens, avg_curve, color='#2ECC71', linewidth=2, label='AG (promedio)')
+        best_curve.append(statistics.mean(h[idx][2] for h in histories))
+        avg_curve.append(statistics.mean(h[idx][3] for h in histories))
+        worst_curve.append(statistics.mean(h[idx][4] for h in histories))
+
+    ax.plot(gens, best_curve, color='#2ECC71', linewidth=2, label='Mejor (Fitness máx)')
+    ax.plot(gens, avg_curve, color='#3498DB', linewidth=1.5, linestyle='--', label='Promedio población')
+    ax.plot(gens, worst_curve, color='#E74C3C', linewidth=1.5, linestyle=':', label='Peor (Fitness mín)')
 
     ax.set_xlabel('Generación')
-    ax.set_ylabel('Mejor Beneficio')
-    ax.set_title(f'Convergencia Algoritmo Genético — {instance_name}')
+    ax.set_ylabel('Beneficio (Fitness)')
+    ax.set_title(f'Convergencia Poblacional Algoritmo Genético — {instance_name}')
     ax.legend()
     ax.grid(alpha=0.3)
     plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/convergence_ga_iters_{instance_name}.png", dpi=150)
     plt.savefig(f"{OUTPUT_DIR}/convergence_ga_{instance_name}.png", dpi=150)
     plt.close()
 
 
-def plot_convergence_all(data, instance_name):
-    """Convergencia SA vs GA en un solo gráfico (normalizado por tiempo)."""
+def plot_convergence_ga_time(data, instance_name):
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    histories = data['ga_histories']
+    if not histories or not histories[0]:
+        plt.close()
+        return
+    min_len = min(len(h) for h in histories)
+    times = []
+    best_curve = []
+    avg_curve = []
+    worst_curve = []
+    for idx in range(min_len):
+        times.append(statistics.mean(h[idx][1] for h in histories))
+        best_curve.append(statistics.mean(h[idx][2] for h in histories))
+        avg_curve.append(statistics.mean(h[idx][3] for h in histories))
+        worst_curve.append(statistics.mean(h[idx][4] for h in histories))
+
+    ax.plot(times, best_curve, color='#2ECC71', linewidth=2, label='Mejor (Fitness máx)')
+    ax.plot(times, avg_curve, color='#3498DB', linewidth=1.5, linestyle='--', label='Promedio población')
+    ax.plot(times, worst_curve, color='#E74C3C', linewidth=1.5, linestyle=':', label='Peor (Fitness mín)')
+
+    ax.set_xlabel('Tiempo (segundos)')
+    ax.set_ylabel('Beneficio (Fitness)')
+    ax.set_title(f'Convergencia Algoritmo Genético (FO vs Tiempo) — {instance_name}')
+    ax.legend()
+    ax.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/convergence_ga_time_{instance_name}.png", dpi=150)
+    plt.close()
+
+
+def plot_convergence_all_iters(data, instance_name):
     fig, ax = plt.subplots(figsize=(10, 6))
 
     for histories, label, color in [
@@ -217,8 +267,7 @@ def plot_convergence_all(data, instance_name):
         if not histories or not histories[0]:
             continue
         min_len = min(len(h) for h in histories)
-        avg_curve = [statistics.mean(h[idx][1] for h in histories) for idx in range(min_len)]
-        # Normalizar eje X a porcentaje de progreso
+        avg_curve = [statistics.mean(h[idx][2] for h in histories) for idx in range(min_len)]
         x = [i / (min_len - 1) * 100 if min_len > 1 else 0 for i in range(min_len)]
         ax.plot(x, avg_curve, label=label, color=color, linewidth=2)
 
@@ -226,16 +275,43 @@ def plot_convergence_all(data, instance_name):
                linestyle='--', label=f"Greedy Det.", alpha=0.7)
     ax.set_xlabel('Progreso (%)')
     ax.set_ylabel('Mejor Beneficio')
-    ax.set_title(f'Convergencia: SA vs AG — {instance_name}')
+    ax.set_title(f'Convergencia Comparativa (Progreso %): SA vs AG — {instance_name}')
     ax.legend()
     ax.grid(alpha=0.3)
     plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/convergence_all_iters_{instance_name}.png", dpi=150)
     plt.savefig(f"{OUTPUT_DIR}/convergence_all_{instance_name}.png", dpi=150)
     plt.close()
 
 
+def plot_convergence_all_time(data, instance_name):
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    for histories, label, color in [
+        (data['sa_det_histories'], 'SA (desde Det.)', '#F39C12'),
+        (data['sa_st_histories'], 'SA (desde Est.)', '#E67E22'),
+        (data['ga_histories'], 'Alg. Genético', '#2ECC71'),
+    ]:
+        if not histories or not histories[0]:
+            continue
+        min_len = min(len(h) for h in histories)
+        times = [statistics.mean(h[idx][1] for h in histories) for idx in range(min_len)]
+        avg_curve = [statistics.mean(h[idx][2] for h in histories) for idx in range(min_len)]
+        ax.plot(times, avg_curve, label=label, color=color, linewidth=2)
+
+    ax.axhline(y=data['det_benefit'], color='#E74C3C', linewidth=1.5,
+               linestyle='--', label=f"Greedy Det.", alpha=0.7)
+    ax.set_xlabel('Tiempo (segundos)')
+    ax.set_ylabel('Mejor Beneficio')
+    ax.set_title(f'Convergencia Comparativa (Tiempo): SA vs AG — {instance_name}')
+    ax.legend()
+    ax.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(f"{OUTPUT_DIR}/convergence_all_time_{instance_name}.png", dpi=150)
+    plt.close()
+
+
 def print_summary_table(all_data):
-    """Imprime tabla resumen final."""
     print(f"\n{'='*90}")
     print("TABLA RESUMEN FINAL")
     print(f"{'='*90}")
@@ -255,7 +331,6 @@ def print_summary_table(all_data):
 
 
 def generate_all_graphs():
-    """Genera todos los gráficos para las 4 instancias."""
     ensure_dir()
 
     files = ['easy.txt', 'medium1.txt', 'medium2.txt', 'hard.txt']
@@ -284,12 +359,14 @@ def generate_all_graphs():
         data = run_and_collect(inst, sa_configs[fname], ga_configs[fname])
         all_data[iname] = data
 
-        # Generar gráficos
         plot_greedy_comparison(data, iname)
         plot_all_algorithms_boxplot(data, iname)
-        plot_convergence_sa(data, iname)
-        plot_convergence_ga(data, iname)
-        plot_convergence_all(data, iname)
+        plot_convergence_sa_iters(data, iname)
+        plot_convergence_sa_time(data, iname)
+        plot_convergence_ga_iters(data, iname)
+        plot_convergence_ga_time(data, iname)
+        plot_convergence_all_iters(data, iname)
+        plot_convergence_all_time(data, iname)
         print(f"    [OK] Gráficos generados en {OUTPUT_DIR}/")
 
     print_summary_table(all_data)

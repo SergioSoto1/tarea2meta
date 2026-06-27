@@ -1,14 +1,3 @@
-"""
-Tarea 2 - CIT3352: Algoritmos Exactos y Metaheurísticas
-Archivo principal — Orquesta la ejecución de todos los algoritmos.
-
-Uso:
-    python main.py              → Ejecutar todos los algoritmos
-    python main.py --graphs     → Generar gráficos para el informe
-    python main.py --calibrate  → Calibración de parámetros
-    python main.py --all        → Todo junto
-"""
-
 import sys
 import random
 import time
@@ -51,9 +40,6 @@ def run_all():
         sa_p = SA_PARAMS[fname]
         ga_p = GA_PARAMS[fname]
 
-        # =====================================================================
-        # 1. GREEDY DETERMINISTA
-        # =====================================================================
         print(f"\n--- 1. Greedy Determinista ---")
         t0 = time.time()
         det = greedy_deterministic(inst)
@@ -62,9 +48,6 @@ def run_all():
               f"#Alt={len(det.selected)}, T={t1-t0:.4f}s")
         print(f"  Solución: {sorted(det.selected)}")
 
-        # =====================================================================
-        # 2. GREEDY ESTOCÁSTICO (10 runs)
-        # =====================================================================
         print(f"\n--- 2. Greedy Estocástico (10 runs, alpha=0.3) ---")
         stoch_benefits = []
         stoch_sols = []
@@ -82,9 +65,6 @@ def run_all():
         print(f"\n  Stats: Best={max(stoch_benefits)}, Worst={min(stoch_benefits)}, "
               f"Avg={statistics.mean(stoch_benefits):.1f}, Std={statistics.stdev(stoch_benefits):.1f}")
 
-        # =====================================================================
-        # 3. SIMULATED ANNEALING (10 runs desde cada punto de partida)
-        # =====================================================================
         print(f"\n--- 3. Simulated Annealing ---")
 
         print(f"\n  3a. SA desde Greedy Determinista (init={det.benefit}):")
@@ -113,9 +93,6 @@ def run_all():
         print(f"    Stats: Best={max(sa_st_b)}, Worst={min(sa_st_b)}, "
               f"Avg={statistics.mean(sa_st_b):.1f}, Std={statistics.stdev(sa_st_b):.1f}")
 
-        # =====================================================================
-        # 4. ALGORITMO GENÉTICO (10 runs)
-        # =====================================================================
         print(f"\n--- 4. Algoritmo Genético ---")
         ga_b = []
         for run in range(10):
@@ -129,7 +106,6 @@ def run_all():
         print(f"\n  Stats: Best={max(ga_b)}, Worst={min(ga_b)}, "
               f"Avg={statistics.mean(ga_b):.1f}, Std={statistics.stdev(ga_b):.1f}")
 
-        # RESUMEN
         best_all = max([det.benefit] + stoch_benefits + sa_det_b + sa_st_b + ga_b)
         print(f"\n  *** MEJOR GLOBAL {fname}: {best_all} ***")
 

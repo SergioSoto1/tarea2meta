@@ -1,9 +1,4 @@
-"""
-Tarea 2 - CIT3352
-Experimentos de calibración de parámetros para SA y Algoritmo Genético.
-Genera tablas comparativas para justificar la elección de parámetros.
-"""
-
+import os
 import random
 import time
 import statistics
@@ -14,9 +9,6 @@ from genetic import genetic_algorithm
 
 
 def calibrate_sa(inst, initial_selected, n_runs=5):
-    """
-    Prueba distintas combinaciones de parámetros de SA y reporta resultados.
-    """
     configs = [
         {"T_init": 100,  "T_min": 0.01, "cooling_rate": 0.99,  "max_iter_per_temp": 100},
         {"T_init": 500,  "T_min": 0.01, "cooling_rate": 0.99,  "max_iter_per_temp": 100},
@@ -61,13 +53,24 @@ def calibrate_sa(inst, initial_selected, n_runs=5):
     print(f"\n  >> Mejor configuracion (por promedio): T_init={best_config['config']['T_init']}, "
           f"cooling={best_config['config']['cooling_rate']}, iter/T={best_config['config']['max_iter_per_temp']}")
 
+    os.makedirs("calibracion_resultados", exist_ok=True)
+    fname = os.path.basename(inst.filepath).replace('.txt', '')
+    out_path = f"calibracion_resultados/calibracion_sa_{fname}.md"
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(f"# Calibración Simulated Annealing - {fname}\n\n")
+        f.write(f"Instancia: {fname} (m={inst.m}, n={inst.n}, B={inst.B})\n\n")
+        f.write("| Config | T_init | T_min | cooling | iter/T | Best | Avg | Std | T_avg (s) |\n")
+        f.write("|---|---|---|---|---|---|---|---|---|\n")
+        for idx, res in enumerate(results):
+            cfg = res["config"]
+            f.write(f"| {idx+1} | {cfg['T_init']} | {cfg['T_min']} | {cfg['cooling_rate']} | {cfg['max_iter_per_temp']} | {res['best']} | {res['avg']:.1f} | {res['std']:.1f} | {res['time']:.3f} |\n")
+        f.write(f"\n**Mejor configuración (por promedio):** T_init={best_config['config']['T_init']}, cooling={best_config['config']['cooling_rate']}, iter/T={best_config['config']['max_iter_per_temp']}\n")
+    print(f"  [OK] Resultados de calibración SA guardados en '{out_path}'")
+
     return results
 
 
 def calibrate_ga(inst, n_runs=5):
-    """
-    Prueba distintas combinaciones de parámetros del algoritmo genético.
-    """
     configs = [
         {"pop_size": 30,  "generations": 100, "mutation_rate": 0.03, "tournament_size": 3},
         {"pop_size": 50,  "generations": 100, "mutation_rate": 0.05, "tournament_size": 3},
@@ -110,11 +113,24 @@ def calibrate_ga(inst, n_runs=5):
     print(f"\n  >> Mejor configuracion (por promedio): pop={best_config['config']['pop_size']}, "
           f"gens={best_config['config']['generations']}, mut={best_config['config']['mutation_rate']}")
 
+    os.makedirs("calibracion_resultados", exist_ok=True)
+    fname = os.path.basename(inst.filepath).replace('.txt', '')
+    out_path = f"calibracion_resultados/calibracion_ga_{fname}.md"
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(f"# Calibración Algoritmo Genético - {fname}\n\n")
+        f.write(f"Instancia: {fname} (m={inst.m}, n={inst.n}, B={inst.B})\n\n")
+        f.write("| Config | pop | gens | mut | tourn | Best | Avg | Std | T_avg (s) |\n")
+        f.write("|---|---|---|---|---|---|---|---|---|\n")
+        for idx, res in enumerate(results):
+            cfg = res["config"]
+            f.write(f"| {idx+1} | {cfg['pop_size']} | {cfg['generations']} | {cfg['mutation_rate']} | {cfg['tournament_size']} | {res['best']} | {res['avg']:.1f} | {res['std']:.1f} | {res['time']:.3f} |\n")
+        f.write(f"\n**Mejor configuración (por promedio):** pop={best_config['config']['pop_size']}, gens={best_config['config']['generations']}, mut={best_config['config']['mutation_rate']}, tourn={best_config['config']['tournament_size']}\n")
+    print(f"  [OK] Resultados de calibración GA guardados en '{out_path}'")
+
     return results
 
 
 if __name__ == '__main__':
-    # Calibrar sobre instancia easy y medium1
     for fname in ['easy.txt', 'medium1.txt']:
         inst = Instance(fname)
         det = greedy_deterministic(inst)
